@@ -1,5 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:notion_clone/features/auth/widgets/footer_text.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final supabase = Supabase.instance.client;
@@ -13,16 +15,13 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _showEmailInput = false;
-  bool _showOtpInput = false;
-  final bool _isLoading = false;
+  bool _isLoading = false;
   bool _isEmail = true;
   final _emailController = TextEditingController();
-  final _otpController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
-    _otpController.dispose();
     super.dispose();
   }
 
@@ -50,10 +49,28 @@ class _LoginScreenState extends State<LoginScreen> {
 
   //OTP 기능
   void _signInWithEmailOtp() async {
-    if (_emailController.text.isEmpty) {
-      _showNotImplemented('이메일을 입력해주세요.');
-      return;
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      await supabase.auth.signInWithOtp(
+        email: _emailController.text,
+        emailRedirectTo: 'io.supabase.flutterquickstart://login-callback',
+      );
+      if (mounted) {
+        context.push('/email-auth/${_emailController.text}');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('오류 발생: ${e.toString()}')));
+        print(e.toString());
+      }
     }
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
@@ -102,10 +119,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed:
                       () => setState(() {
                         _showEmailInput = true;
-                        _showOtpInput = false;
                         _isEmail = false;
                       }),
-                  // _showNotImplemented(context, "SSO"),
                 ),
                 _LoginButton(
                   icon: Icons.mail_outline,
@@ -113,7 +128,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed:
                       () => setState(() {
                         _showEmailInput = true;
-                        _showOtpInput = false;
                         _isEmail = true;
                       }),
                 ),
@@ -146,27 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      '이용약관 및 개인정보 보호정책',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(width: 16),
-                    Text(
-                      '도움이 필요하세요?',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  '© 2025 Notion Labs, Inc.',
-                  textAlign: TextAlign.start,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                ),
-                const SizedBox(height: 48),
+                FooterText(),
               ],
             ),
           ),
@@ -193,6 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
             hintText: '이메일 주소를 입력하세요',
             border: OutlineInputBorder(),
           ),
+          onSubmitted: (_) => _signInWithEmailOtp(),
         ),
         const SizedBox(height: 4),
         const Text(
@@ -200,62 +195,26 @@ class _LoginScreenState extends State<LoginScreen> {
           style: TextStyle(fontSize: 12, color: Colors.grey),
         ),
         const SizedBox(height: 16),
-        if (_showOtpInput)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                '인증 코드',
-                style: TextStyle(fontSize: 12),
-                textAlign: TextAlign.start,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _otpController,
-                style: TextStyle(fontSize: 14),
-                keyboardType: TextInputType.text,
-                decoration: const InputDecoration(
-                  hintText: '코드 입력',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 10,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                '수신함으로 코드를 보내드렸습니다.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
-          ),
-
-        const SizedBox(height: 16),
 
         if (_isLoading)
           const Center(child: CircularProgressIndicator())
         else
           ElevatedButton(
             onPressed: () {
-              setState(() {
-                _showOtpInput = true;
-              });
+              _signInWithEmailOtp();
+              // context.push('/email-auth/${_emailController.text}');
             },
             style: ElevatedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             child: Text(_isEmail ? '계속' : 'SSO로 계속하기'),
           ),
         const SizedBox(height: 16),
-        if (_showOtpInput)
-          const Text(
-            '인증 코드 재전송하기',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16, color: Colors.blueAccent),
-          ),
       ],
     );
   }
