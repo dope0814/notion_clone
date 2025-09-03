@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>KAKAO_APP_KEY</key>
+	<string>68fa31fe004743ebbca4d08156c22265</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -30,6 +32,8 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>io.supabase.flutterquickstart</string>
+				<string>com.googleusercontent.apps.163738160833-vt5c6ms5k7ingakb43lnc04ko58j2spp</string>
+				<string>kakao68fa31fe004743ebbca4d08156c22265</string>
 			</array>
 		</dict>
 	</array>
@@ -55,6 +59,11 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>kakaokompassauth</string>
+		<string>kakaolink</string>
 	</array>
 </dict>
 </plist>

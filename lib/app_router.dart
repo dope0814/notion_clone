@@ -26,6 +26,7 @@ class GoRouterRefreshStrem extends ChangeNotifier {
 
 GoRouter createRouter() {
   return GoRouter(
+    refreshListenable: GoRouterRefreshStrem(supabase.auth.onAuthStateChange),
     initialLocation: '/login',
     routes: <GoRoute>[
       GoRoute(

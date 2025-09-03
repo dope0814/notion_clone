@@ -1,6 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:notion_clone/features/auth/widgets/footer_text.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -26,16 +32,95 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   //로그인 기능
-  void _loginWithGoogle(BuildContext context) {
-    _showNotImplemented('Google');
+  void _loginWithGoogle(BuildContext context) async {
+    var webClientId = dotenv.env['GOOGLE_WEB_CLIENT'];
+    var iosClientId = dotenv.env['GOOGLE_IOS_CLIENT'];
+
+    final GoogleSignIn googleSignIn = GoogleSignIn(
+      clientId: iosClientId,
+      serverClientId: webClientId,
+    );
+    final googleUser = await googleSignIn.signIn();
+    final googleAuth = await googleUser!.authentication;
+    final accessToken = googleAuth.accessToken;
+    final idToken = googleAuth.idToken;
+
+    if (accessToken == null) {
+      throw 'No Access Token found.';
+    }
+    if (idToken == null) {
+      throw 'No ID Token found.';
+    }
+
+    await supabase.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: accessToken,
+    );
   }
 
-  void _loginWithPassKey(BuildContext context) {
-    _showNotImplemented('PassKey');
+  void _loginWithKakao(BuildContext context) async {
+    try {
+      await supabase.auth.signInWithOAuth(
+        OAuthProvider.kakao,
+
+        // redirectTo: kIsWeb ? null : 'io.supabase.flutter://reset-callback/',
+      );
+      supabase.auth.onAuthStateChange.listen((data) {
+        final AuthChangeEvent event = data.event;
+
+        if (event == AuthChangeEvent.signedIn) {
+          print("SIGNIN");
+        }
+      });
+    } catch (e) {
+      print('Error: $e');
+    }
+    // try {
+    //   if (await isKakaoTalkInstalled()) {
+    //     try {
+    //       OAuthToken token = await UserApi.instance.loginWithKakaoTalk();
+    //       // print('카카오톡으로 로그인 성공1: ${token.idToken}');
+    //       await _signInWithKakaoToken(token);
+    //     } catch (e) {
+    //       if (e is PlatformException && e.code == 'CANCELED') {
+    //         return;
+    //       }
+    //     }
+    //     try {
+    //       OAuthToken token = await UserApi.instance.loginWithKakaoAccount();
+    //       // print('카카오계정으로 로그인 성공2: ${token.idToken}');
+    //       await _signInWithKakaoToken(token);
+    //     } catch (e) {
+    //       print('카카오계정으로 로그인 실패1 $e');
+    //     }
+    //   } else {
+    //     try {
+    //       OAuthToken token = await UserApi.instance.loginWithKakaoAccount();
+    //       // print('카카오계정으로 로그인 성공3: ${token.idToken}');
+    //       await _signInWithKakaoToken(token);
+    //     } catch (e) {
+    //       print('카카오계정으로 로그인 실패2: $e');
+    //     }
+    //   }
+    // } catch (e) {
+    //   ScaffoldMessenger.of(
+    //     context,
+    //   ).showSnackBar(SnackBar(content: Text('오류 발생: ${e.toString()}')));
+    // }
   }
 
-  void _loginWithEmail(BuildContext context) {
-    _showNotImplemented('Email');
+  Future<void> _signInWithKakaoToken(OAuthToken token) async {
+    print("accessToken: ${token.accessToken}");
+    print("idToken: ${token.idToken}");
+    if (token.idToken == null) {
+      throw '카카오로부터 ID 토큰을 받지 못했습니다.';
+    }
+    await supabase.auth.signInWithIdToken(
+      provider: OAuthProvider.kakao,
+      idToken: token.idToken!,
+      accessToken: token.accessToken,
+    );
   }
 
   void _showNotImplemented(String feature) {
@@ -65,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('오류 발생: ${e.toString()}')));
-        print(e.toString());
+        // print(e.toString());
       }
     }
     setState(() {
@@ -94,33 +179,29 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 _LoginButton(
-                  icon: Icons.g_mobiledata_outlined,
+                  iconAsset: 'assets/icons/google_logo.svg',
                   text: "Google 계정으로 계속하기",
                   onPressed: () => _loginWithGoogle(context),
                 ),
                 _LoginButton(
                   icon: Icons.apple,
                   text: "Apple 계정으로 계속하기",
-                  onPressed: () => _showNotImplemented("Apple"),
+                  onPressed: null,
                 ),
                 _LoginButton(
                   icon: Icons.window,
-                  text: "Microsoft로 계속하기",
-                  onPressed: () => _showNotImplemented("Microsoft"),
+                  text: "카카오 계정으로 계속하기",
+                  onPressed: () => _loginWithKakao(context),
                 ),
                 _LoginButton(
                   icon: Icons.vpn_key_outlined,
                   text: "패스키로 로그인",
-                  onPressed: () => _loginWithPassKey(context),
+                  onPressed: null,
                 ),
                 _LoginButton(
                   icon: Icons.business_center_outlined,
                   text: "SSO(통합로그인)",
-                  onPressed:
-                      () => setState(() {
-                        _showEmailInput = true;
-                        _isEmail = false;
-                      }),
+                  onPressed: null,
                 ),
                 _LoginButton(
                   icon: Icons.mail_outline,
@@ -221,12 +302,14 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class _LoginButton extends StatelessWidget {
-  final IconData icon;
+  final String? iconAsset;
+  final IconData? icon;
   final String text;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const _LoginButton({
-    required this.icon,
+    this.iconAsset,
+    this.icon,
     required this.text,
     required this.onPressed,
   });
@@ -250,7 +333,10 @@ class _LoginButton extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Padding(
                 padding: const EdgeInsets.only(left: 16),
-                child: Icon(icon, size: 28),
+                child:
+                    iconAsset != null
+                        ? SvgPicture.asset(iconAsset!, height: 24, width: 24)
+                        : Icon(icon, size: 24),
               ),
             ),
             Align(
