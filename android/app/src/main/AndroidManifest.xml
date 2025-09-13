@@ -29,10 +29,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <!-- Accepts io.supabase.flutterquickstart://login-callback/ -->
-                <data android:scheme='com.example.notion_clone' android:host='oauth'/>
-                <data android:scheme="io.supabase.flutterquickstart" /
-                <data android:scheme="kakao68fa31fe004743ebbca4d08156c22265" />
-                <data android:host="address" />>
+                <data android:scheme="io.supabase.flutterquickstart" android:host="login-callback" />
             </intent-filter>
         </activity>
 
@@ -51,6 +48,14 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
         </intent>
     </queries>
 </manifest>
