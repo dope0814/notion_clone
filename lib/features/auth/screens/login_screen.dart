@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:notion_clone/features/auth/widgets/footer_text.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -58,14 +59,67 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _showNotImplemented(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature 로그인은 아직 구현되지 않았습니다.'),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+  void _loginWithKakao() async {
+    try {
+      await supabase.auth.signInWithOAuth(
+        OAuthProvider.kakao,
+        redirectTo:
+            kIsWeb ? null : 'io.supabase.flutterquickstart://login-callback',
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+    } on PlatformException catch (e) {
+      if (kDebugMode) {
+        print("Caught PlatformException: ${e.message}. This is expected.");
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('로그인 중 오류가 발생했습니다.')));
+      }
+    }
+
+    // if (await isKakaoTalkInstalled()) {
+    //   try {
+    //     await UserApi.instance.loginWithKakaoTalk();
+    //     print('1_카카오톡으로 로그인');
+    //   } catch (e) {
+    //     print('1_e 카카오톡으로 로그인 실패: $e');
+
+    //     if (e is PlatformException && e.code == "CANCELED") {
+    //       return;
+    //     }
+
+    //     try {
+    //       await UserApi.instance.loginWithKakaoAccount();
+    //       print('2_카카오계정으로 로그인');
+    //     } catch (e) {
+    //       print('2_e 카카오계정으로 로그인 실패: $e');
+    //     }
+    //   }
+    // } else {
+    //   try {
+    //     await UserApi.instance.loginWithKakaoAccount();
+    //     await supabase.auth.signInWithOAuth(
+    //       OAuthProvider.kakao,
+    //       redirectTo:
+    //           kIsWeb ? null : 'io.supabase.flutterquickstart://login-callback',
+    //       authScreenLaunchMode: LaunchMode.externalApplication,
+    //     );
+    //     print('3_카카오 계정으로 로그인');
+    //   } catch (e) {
+    //     print('3_e 카카오계정으로 로그인 실페');
+    //   }
+    // }
   }
+  // void _showNotImplemented(String feature) {
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text('$feature 로그인은 아직 구현되지 않았습니다.'),
+  //       duration: const Duration(seconds: 3),
+  //     ),
+  //   );
+  // }
 
   //OTP 기능
   void _signInWithEmailOtp() async {
@@ -124,9 +178,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: null,
                 ),
                 _LoginButton(
-                  icon: Icons.window,
+                  iconAsset: 'assets/icons/kakaotalk-seeklogo.svg',
                   text: "카카오 계정으로 계속하기",
-                  onPressed: () {},
+                  onPressed: () => _loginWithKakao(),
                 ),
                 _LoginButton(
                   icon: Icons.vpn_key_outlined,
